@@ -6,7 +6,9 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
 import androidx.annotation.ColorInt
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.withStyledAttributes
+import androidx.core.graphics.drawable.toBitmap
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -26,10 +28,13 @@ class RoundSelector @JvmOverloads constructor(
 
     private var radius = 0.0f
     private var innerRadius = 0.0f
+
     //central point
     private val cp = PointF(0.0f, 0.0f)
+
     //left top point
     private val ltp = PointF(0.0f, 0.0f)
+
     //right bottom point
     private val rbp = PointF(0.0f, 0.0f)
     private val rect = RectF()
@@ -38,22 +43,47 @@ class RoundSelector @JvmOverloads constructor(
     private val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val foregroundPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    private lateinit var bitmap: Bitmap
+    private var bitmapMatrix = Matrix()
 
     @ColorInt
     private var fillColor = DEFAULT_FILL_COLOR
+
     @ColorInt
     private var foregroundColor = DEFAULT_FOREGROUND_COLOR
+
     @ColorInt
     private var borderColor = DEFAULT_BORDER_COLOR
 
     private var borderWidth = DEFAULT_BORDER_WIDTH
 
+    var items: List<IRoundSelectorItem> = emptyList()
+        set(value) {
+            field = value
+            if (value.isNotEmpty()) {
+                invalidate()
+            }
+        }
+
+    var currIndex = 0
+        set(value) {
+            assert(value >= 0 && value < items.size)
+            field = value
+            if (items.isNotEmpty()) {
+                invalidate()
+            }
+        }
+
     init {
         context?.withStyledAttributes(attrs, R.styleable.RoundSelector) {
             fillColor = getColor(R.styleable.RoundSelector_rc_backgroundColor, DEFAULT_FILL_COLOR)
-            foregroundColor = getColor(R.styleable.RoundSelector_rc_foregroundColor, DEFAULT_FOREGROUND_COLOR)
+            foregroundColor =
+                getColor(R.styleable.RoundSelector_rc_foregroundColor, DEFAULT_FOREGROUND_COLOR)
             borderColor = getColor(R.styleable.RoundSelector_rc_borderColor, DEFAULT_BORDER_COLOR)
-            borderWidth = getDimension(R.styleable.RoundSelector_rc_borderWidth, DEFAULT_BORDER_WIDTH)
+            borderWidth =
+                getDimension(R.styleable.RoundSelector_rc_borderWidth, DEFAULT_BORDER_WIDTH)
         }
 
         setup()
@@ -65,8 +95,13 @@ class RoundSelector @JvmOverloads constructor(
         cp.x = w / 2f
         cp.y = h / 2f
 
-        rect.set(cp.x - radius, cp.y - radius, cp.x+radius, cp.y+radius)
-        innerRect.set(cp.x - innerRadius, cp.y - innerRadius, cp.x+innerRadius, cp.y+innerRadius)
+        rect.set(cp.x - radius, cp.y - radius, cp.x + radius, cp.y + radius)
+        innerRect.set(
+            cp.x - innerRadius,
+            cp.y - innerRadius,
+            cp.x + innerRadius,
+            cp.y + innerRadius
+        )
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -78,14 +113,55 @@ class RoundSelector @JvmOverloads constructor(
         super.onDraw(canvas)
 
         canvas.drawCircle(cp.x, cp.y, radius, foregroundPaint)
-        canvas.drawCircle(cp.x, cp.y, radius*0.9f, backgroundPaint)
+        canvas.drawCircle(cp.x, cp.y, radius * 0.9f, backgroundPaint)
         canvas.drawArc(innerRect, 178f, 184f, false, foregroundPaint)
         canvas.drawArc(rect, 0f, 180f, false, foregroundPaint)
 
+        if (items.isNotEmpty()) {
+            drawItems(canvas)
+        }
+
+        drawBorder(canvas)
+    }
+
+
+
+    private fun drawItems(canvas: Canvas) {
+        //center (current item)
+        prepareBitmap(currIndex)
+        canvas.drawBitmap(
+            bitmap, cp.x - bitmap.width / 2,
+            cp.y - radius * 3 / 5 - bitmap.height / 2, foregroundPaint
+        )
+
+        //left
+        if (currIndex - 1 >= 0) {
+            prepareBitmap(currIndex -1)
+            bitmap.rotate(-60f, cp.x, cp.y)
+            ltp.calculateXY(180f + 30f, radius * 3 / 5)
+            canvas.drawBitmap(
+                bitmap, ltp.x - bitmap.width / 2,
+                ltp.y - bitmap.height / 2, foregroundPaint
+            )
+        }
+
+        //right
+        if (currIndex + 1 < items.size) {
+            prepareBitmap(currIndex + 1)
+            bitmap.rotate(60f, cp.x, cp.y)
+            ltp.calculateXY(360f - 30f, radius * 3 / 5)
+            canvas.drawBitmap(
+                bitmap, ltp.x - bitmap.width / 2,
+                ltp.y - bitmap.height / 2, foregroundPaint
+            )
+        }
+    }
+
+    private fun drawBorder(canvas: Canvas) {
         canvas.drawCircle(cp.x, cp.y, radius, borderPaint)
-        canvas.drawLine(cp.x - radius*0.9f, cp.y, cp.x - innerRadius, cp.y, borderPaint)
+        canvas.drawLine(cp.x - radius * 0.9f, cp.y, cp.x - innerRadius, cp.y, borderPaint)
         canvas.drawArc(innerRect, 180f, 180f, false, borderPaint)
-        canvas.drawLine(cp.x + innerRadius, cp.y, cp.x + radius*0.9f, cp.y, borderPaint)
+        canvas.drawLine(cp.x + innerRadius, cp.y, cp.x + radius * 0.9f, cp.y, borderPaint)
 
         with(rect) {
             left = cp.x - radius * 0.9f
@@ -94,7 +170,7 @@ class RoundSelector @JvmOverloads constructor(
             bottom = cp.y + radius * 0.9f
         }
         canvas.drawArc(rect, 180f, 180f, false, borderPaint)
-        rect.set(cp.x - radius, cp.y - radius, cp.x+radius, cp.y+radius)
+        rect.set(cp.x - radius, cp.y - radius, cp.x + radius, cp.y + radius)
 
         ltp.calculateXY(60f + 180f, radius * 0.9f)
         rbp.calculateXY(60f + 180f, innerRadius)
@@ -121,6 +197,13 @@ class RoundSelector @JvmOverloads constructor(
             color = borderColor
             strokeWidth = borderWidth
         }
+
+        with(textPaint) {
+            textSize = 88f
+            color = Color.BLACK
+
+            style = Paint.Style.STROKE
+        }
     }
 
     private fun resolveDefaultSize(spec: Int): Int {
@@ -135,5 +218,18 @@ class RoundSelector @JvmOverloads constructor(
     private fun PointF.calculateXY(angle: Float, radius: Float) {
         x = cp.x + (radius * cos(angle * Math.PI.toFloat() / 180))
         y = cp.y + (radius * sin(angle * Math.PI.toFloat() / 180))
+    }
+
+    private fun Bitmap.rotate(degrees: Float, px: Float, py: Float) {
+        bitmapMatrix.reset()
+        bitmapMatrix.setRotate(degrees, px, py)
+        bitmap = Bitmap.createBitmap(this, 0, 0, width, height, bitmapMatrix, true)
+    }
+
+    private fun prepareBitmap(index: Int) {
+        bitmap =
+            AppCompatResources.getDrawable(context, items[index].getDrawable())?.toBitmap()
+                ?: AppCompatResources.getDrawable(context, R.drawable.ic_android)!!
+                    .toBitmap()
     }
 }
