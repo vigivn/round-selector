@@ -1,9 +1,11 @@
 package ru.vigivn.roundselector
 
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
 import androidx.annotation.ColorInt
 import androidx.appcompat.content.res.AppCompatResources
@@ -76,6 +78,8 @@ class RoundSelector @JvmOverloads constructor(
             }
         }
 
+    var isLooped = false
+
     init {
         context?.withStyledAttributes(attrs, R.styleable.RoundSelector) {
             fillColor = getColor(R.styleable.RoundSelector_rc_backgroundColor, DEFAULT_FILL_COLOR)
@@ -84,6 +88,7 @@ class RoundSelector @JvmOverloads constructor(
             borderColor = getColor(R.styleable.RoundSelector_rc_borderColor, DEFAULT_BORDER_COLOR)
             borderWidth =
                 getDimension(R.styleable.RoundSelector_rc_borderWidth, DEFAULT_BORDER_WIDTH)
+            isLooped = getBoolean(R.styleable.RoundSelector_rc_isLooped, false)
         }
 
         setup()
@@ -124,7 +129,34 @@ class RoundSelector @JvmOverloads constructor(
         drawBorder(canvas)
     }
 
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (event.x < width/ 2)
+            prev()
+        else
+            next()
+        return super.onTouchEvent(event)
+    }
 
+    fun next() {
+        if (currIndex + 1 < items.size) {
+            currIndex++
+            invalidate()
+        } else if (isLooped) {
+            currIndex = 0
+            invalidate()
+        }
+    }
+
+    fun prev() {
+        if (currIndex - 1 >= 0) {
+            currIndex--
+            invalidate()
+        } else if (isLooped) {
+            currIndex = items.lastIndex
+            invalidate()
+        }
+    }
 
     private fun drawItems(canvas: Canvas) {
         //center (current item)
@@ -143,11 +175,27 @@ class RoundSelector @JvmOverloads constructor(
                 bitmap, ltp.x - bitmap.width / 2,
                 ltp.y - bitmap.height / 2, foregroundPaint
             )
+        } else if (isLooped) {
+            prepareBitmap(items.lastIndex)
+            bitmap.rotate(-60f, cp.x, cp.y)
+            ltp.calculateXY(180f + 30f, radius * 3 / 5)
+            canvas.drawBitmap(
+                bitmap, ltp.x - bitmap.width / 2,
+                ltp.y - bitmap.height / 2, foregroundPaint
+            )
         }
 
         //right
         if (currIndex + 1 < items.size) {
             prepareBitmap(currIndex + 1)
+            bitmap.rotate(60f, cp.x, cp.y)
+            ltp.calculateXY(360f - 30f, radius * 3 / 5)
+            canvas.drawBitmap(
+                bitmap, ltp.x - bitmap.width / 2,
+                ltp.y - bitmap.height / 2, foregroundPaint
+            )
+        } else if (isLooped) {
+            prepareBitmap(0)
             bitmap.rotate(60f, cp.x, cp.y)
             ltp.calculateXY(360f - 30f, radius * 3 / 5)
             canvas.drawBitmap(
