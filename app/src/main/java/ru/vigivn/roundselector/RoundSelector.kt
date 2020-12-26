@@ -28,6 +28,8 @@ class RoundSelector @JvmOverloads constructor(
         private const val DEFAULT_FOREGROUND_COLOR = Color.GRAY
         private const val DEFAULT_BORDER_WIDTH = 8f
         private const val DEFAULT_BORDER_COLOR = Color.DKGRAY
+        private const val DEFAULT_LABELS_COLOR = Color.BLACK
+        private const val DEFAULT_LABELS_TEXT_SIZE = 44f
     }
 
     private var radius = 0.0f
@@ -63,6 +65,10 @@ class RoundSelector @JvmOverloads constructor(
 
     private var borderWidth = DEFAULT_BORDER_WIDTH
 
+    @ColorInt
+    private var labelsColor = DEFAULT_LABELS_COLOR
+    private var labelsTextSize = DEFAULT_LABELS_TEXT_SIZE
+
     var items: List<IRoundSelectorItem> = emptyList()
         set(value) {
             field = value
@@ -81,6 +87,16 @@ class RoundSelector @JvmOverloads constructor(
         }
 
     var isLooped = false
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    var showLabels = true
+        set(value) {
+            field = value
+            invalidate()
+        }
 
     init {
         context?.withStyledAttributes(attrs, R.styleable.RoundSelector) {
@@ -91,6 +107,9 @@ class RoundSelector @JvmOverloads constructor(
             borderWidth =
                 getDimension(R.styleable.RoundSelector_rc_borderWidth, DEFAULT_BORDER_WIDTH)
             isLooped = getBoolean(R.styleable.RoundSelector_rc_isLooped, false)
+            showLabels = getBoolean(R.styleable.RoundSelector_rc_showLabels, true)
+            labelsColor = getColor(R.styleable.RoundSelector_rc_labelsColor, DEFAULT_LABELS_COLOR)
+            labelsTextSize = getFloat(R.styleable.RoundSelector_rc_labelsTextSize, DEFAULT_LABELS_TEXT_SIZE)
         }
 
         setup()
@@ -133,7 +152,7 @@ class RoundSelector @JvmOverloads constructor(
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (event.x < width/ 2)
+        if (event.x < width / 2)
             prev()
         else
             next()
@@ -167,43 +186,59 @@ class RoundSelector @JvmOverloads constructor(
             bitmap, cp.x - bitmap.width / 2,
             cp.y - radius * 3 / 5 - bitmap.height / 2, foregroundPaint
         )
+        if (showLabels)
+            canvas.drawText(
+                items[currIndex].getLabel(), cp.x,
+                cp.y - radius * 2 / 5, textPaint
+            )
 
         //left
-        if (currIndex - 1 >= 0) {
-            prepareBitmap(currIndex -1)
-            bitmap.rotate(-60f, cp.x, cp.y)
-            ltp.calculateXY(180f + 30f, radius * 3 / 5)
-            canvas.drawBitmap(
-                bitmap, ltp.x - bitmap.width / 2,
-                ltp.y - bitmap.height / 2, foregroundPaint
-            )
-        } else if (isLooped) {
-            prepareBitmap(items.lastIndex)
-            bitmap.rotate(-60f, cp.x, cp.y)
-            ltp.calculateXY(180f + 30f, radius * 3 / 5)
-            canvas.drawBitmap(
-                bitmap, ltp.x - bitmap.width / 2,
-                ltp.y - bitmap.height / 2, foregroundPaint
-            )
-        }
+        if (currIndex - 1 >= 0)
+            drawLeft(canvas, currIndex - 1)
+        else if (isLooped)
+            drawLeft(canvas, items.lastIndex)
 
         //right
-        if (currIndex + 1 < items.size) {
-            prepareBitmap(currIndex + 1)
-            bitmap.rotate(60f, cp.x, cp.y)
-            ltp.calculateXY(360f - 30f, radius * 3 / 5)
-            canvas.drawBitmap(
-                bitmap, ltp.x - bitmap.width / 2,
-                ltp.y - bitmap.height / 2, foregroundPaint
+        if (currIndex + 1 < items.size)
+            drawRight(canvas, currIndex + 1)
+        else if (isLooped)
+            drawRight(canvas, 0)
+    }
+
+    private fun drawLeft(canvas: Canvas, index: Int) {
+        prepareBitmap(index)
+        prepareBitmap(currIndex - 1)
+        bitmap.rotate(-60f, cp.x, cp.y)
+        ltp.calculateXY(180f + 30f, radius * 3 / 5)
+        canvas.drawBitmap(
+            bitmap, ltp.x - bitmap.width / 2,
+            ltp.y - bitmap.height / 2, foregroundPaint
+        )
+        if (showLabels) {
+            canvas.rotate(-60f, cp.x, cp.y)
+            canvas.drawText(
+                items[currIndex].getLabel(), cp.x,
+                cp.y - radius * 2 / 5, textPaint
             )
-        } else if (isLooped) {
-            prepareBitmap(0)
-            bitmap.rotate(60f, cp.x, cp.y)
-            ltp.calculateXY(360f - 30f, radius * 3 / 5)
-            canvas.drawBitmap(
-                bitmap, ltp.x - bitmap.width / 2,
-                ltp.y - bitmap.height / 2, foregroundPaint
+            canvas.rotate(60f, cp.x, cp.y)
+        }
+    }
+
+    private fun drawRight(canvas: Canvas, index: Int) {
+        prepareBitmap(index)
+        bitmap.rotate(60f, cp.x, cp.y)
+        ltp.calculateXY(360f - 30f, radius * 3 / 5)
+        canvas.drawBitmap(
+            bitmap, ltp.x - bitmap.width / 2,
+            ltp.y - bitmap.height / 2, foregroundPaint
+        )
+        if (showLabels) {
+            canvas.rotate(60f, cp.x, cp.y)
+            canvas.drawText(
+                items[currIndex].getLabel(), cp.x,
+                cp.y - radius * 2 / 5, textPaint
             )
+            canvas.rotate(-60f, cp.x, cp.y)
         }
     }
 
@@ -249,10 +284,10 @@ class RoundSelector @JvmOverloads constructor(
         }
 
         with(textPaint) {
-            textSize = 88f
-            color = Color.BLACK
-
+            textSize = labelsTextSize
+            color = labelsColor
             style = Paint.Style.STROKE
+            textAlign = Paint.Align.CENTER
         }
     }
 
@@ -286,6 +321,8 @@ class RoundSelector @JvmOverloads constructor(
     override fun onSaveInstanceState(): Parcelable? {
         val savedState = SavedState(super.onSaveInstanceState())
         savedState.currIndex = currIndex
+        savedState.isLooped = isLooped
+        savedState.showLabels = showLabels
         return savedState
     }
 
@@ -293,21 +330,28 @@ class RoundSelector @JvmOverloads constructor(
         super.onRestoreInstanceState(state)
         if (state is SavedState) {
             currIndex = state.currIndex
+            isLooped = state.isLooped
+            showLabels = state.showLabels
         }
     }
 
     private class SavedState : BaseSavedState, Parcelable {
         var currIndex = 0
+        var isLooped = false
+        var showLabels = true
 
         constructor(superState: Parcelable?) : super(superState)
         constructor(src: Parcel) : super(src) {
             currIndex = src.readInt()
+            isLooped = src.readInt() == 1
+            showLabels = src.readInt() == 1
         }
 
         override fun writeToParcel(parcel: Parcel, flags: Int) {
             super.writeToParcel(parcel, flags)
             parcel.writeInt(currIndex)
-
+            parcel.writeInt(if (isLooped) 1 else 0)
+            parcel.writeInt(if (showLabels) 1 else 0)
         }
 
         override fun describeContents(): Int = 0

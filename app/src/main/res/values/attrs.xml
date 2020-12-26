@@ -6,5 +6,8 @@
         <attr name="rc_borderColor" format="color"/>
         <attr name="rc_borderWidth" format="dimension"/>
         <attr name="rc_isLooped" format="boolean"/>
+        <attr name="rc_showLabels" format="boolean"/>
+        <attr name="rc_labelsColor" format="color"/>
+        <attr name="rc_labelsTextSize" format="float"/>
     </declare-styleable>
 </resources>
