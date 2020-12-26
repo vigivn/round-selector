@@ -4,6 +4,8 @@ package ru.vigivn.roundselector
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
+import android.os.Parcel
+import android.os.Parcelable
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
@@ -279,5 +281,40 @@ class RoundSelector @JvmOverloads constructor(
             AppCompatResources.getDrawable(context, items[index].getDrawable())?.toBitmap()
                 ?: AppCompatResources.getDrawable(context, R.drawable.ic_android)!!
                     .toBitmap()
+    }
+
+    override fun onSaveInstanceState(): Parcelable? {
+        val savedState = SavedState(super.onSaveInstanceState())
+        savedState.currIndex = currIndex
+        return savedState
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        super.onRestoreInstanceState(state)
+        if (state is SavedState) {
+            currIndex = state.currIndex
+        }
+    }
+
+    private class SavedState : BaseSavedState, Parcelable {
+        var currIndex = 0
+
+        constructor(superState: Parcelable?) : super(superState)
+        constructor(src: Parcel) : super(src) {
+            currIndex = src.readInt()
+        }
+
+        override fun writeToParcel(parcel: Parcel, flags: Int) {
+            super.writeToParcel(parcel, flags)
+            parcel.writeInt(currIndex)
+
+        }
+
+        override fun describeContents(): Int = 0
+
+        companion object CREATOR : Parcelable.Creator<SavedState> {
+            override fun createFromParcel(parcel: Parcel): SavedState = SavedState(parcel)
+            override fun newArray(size: Int): Array<SavedState?> = arrayOfNulls(size)
+        }
     }
 }
