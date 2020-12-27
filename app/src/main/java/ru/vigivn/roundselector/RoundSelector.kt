@@ -314,8 +314,7 @@ class RoundSelector @JvmOverloads constructor(
     private fun prepareBitmap(index: Int) {
         bitmap =
             AppCompatResources.getDrawable(context, items[index].getDrawable())?.toBitmap()
-                ?: AppCompatResources.getDrawable(context, R.drawable.ic_android)!!
-                    .toBitmap()
+                ?: Bitmap.createBitmap(24, 24, Bitmap.Config.ARGB_8888)
     }
 
     override fun onSaveInstanceState(): Parcelable? {
