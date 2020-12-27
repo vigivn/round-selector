@@ -4,18 +4,20 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import kotlinx.android.synthetic.main.activity_main.*
 
-class Item(private val drawable: Int = R.drawable.ic_android) : IRoundSelectorItem {
-    override fun getLabel(): String = "label"
-
+class Item(
+    private val label: String,
+    private val drawable: Int = R.drawable.ic_android
+) : IRoundSelectorItem {
+    override fun getLabel(): String = label
     override fun getDrawable(): Int = drawable
 }
 
 class MainActivity : AppCompatActivity() {
     private val items = listOf<Item>(
-        Item(),
-        Item(R.drawable.ic_launcher_foreground),
-        Item(),
-        Item(R.drawable.ic_launcher_foreground)
+        Item("label 0"),
+        Item("label 1", R.drawable.ic_launcher_foreground),
+        Item("label 2"),
+        Item("label 3",R.drawable.ic_launcher_foreground)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {

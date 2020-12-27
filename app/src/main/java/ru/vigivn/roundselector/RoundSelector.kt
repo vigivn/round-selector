@@ -217,7 +217,7 @@ class RoundSelector @JvmOverloads constructor(
         if (showLabels) {
             canvas.rotate(-60f, cp.x, cp.y)
             canvas.drawText(
-                items[currIndex].getLabel(), cp.x,
+                items[index].getLabel(), cp.x,
                 cp.y - radius * 2 / 5, textPaint
             )
             canvas.rotate(60f, cp.x, cp.y)
@@ -235,7 +235,7 @@ class RoundSelector @JvmOverloads constructor(
         if (showLabels) {
             canvas.rotate(60f, cp.x, cp.y)
             canvas.drawText(
-                items[currIndex].getLabel(), cp.x,
+                items[index].getLabel(), cp.x,
                 cp.y - radius * 2 / 5, textPaint
             )
             canvas.rotate(-60f, cp.x, cp.y)
